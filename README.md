@@ -15,6 +15,12 @@ Built by [ariacodez](https://github.com/AKCODEZ) · wraps [Z4nzu/hackingtool](ht
 
 </div>
 
+# See it in ACtion 
+
+<img width="1194" height="49" alt="image" src="https://github.com/user-attachments/assets/9a573541-eabb-4996-b305-c2c1f240cceb" />
+<img width="1152" height="396" alt="image" src="https://github.com/user-attachments/assets/77b75859-7733-4807-9005-6bfcdd3340f5" />
+<img width="1196" height="750" alt="image" src="https://github.com/user-attachments/assets/86c3b5a0-a016-4159-8580-9b96e5418e20" />
+
 ---
 
 ## Install
@@ -29,7 +35,7 @@ Then point Claude at a target:
 ```
 "recon example.com"
 "hunt the username johndoe"
-"scan my repo for leaked secrets"
+"scan my repo for vulnerabilies"
 "crack my own wifi before my neighbor does"
 ```
 
