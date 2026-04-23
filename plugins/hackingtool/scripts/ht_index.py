@@ -5,8 +5,8 @@ ht_index.py — Parse Z4nzu/hackingtool source, emit data/tools.json.
 Walks every `tools/*.py` file, AST-extracts each HackingTool subclass,
 pulls TITLE / DESCRIPTION / INSTALL_COMMANDS / RUN_COMMANDS / TAGS / etc.,
 and infers capability flags (interactive, requires_sudo, requires_gui,
-requires_hardware, long_running, destructive) so downstream scripts can
-decide "Claude runs this" vs "Claude hands off to the user."
+requires_hardware, long_running) so downstream scripts can decide
+"Claude runs this" vs "Claude hands off to the user."
 
 Run with:
   python ht_index.py --hackingtool-path /path/to/hackingtool
@@ -30,13 +30,6 @@ GUI_BINARIES = {
     "autopsy", "wireshark", "burpsuite", "ghidra", "cutter",
     "jadx-gui", "bytecodeviewer", "ida", "ida64", "frida-ui",
     "zap", "zaproxy", "mobsf",
-}
-
-# Categories where RUN_COMMANDS typically send traffic/payloads to a target
-DESTRUCTIVE_CATEGORIES = {
-    "ddos", "phishing_attack", "remote_administration",
-    "payload_creator", "xss_attack", "sql_injection",
-    "web_attack", "exploit_frameworks",
 }
 
 LONG_RUNNING_CATEGORIES = {"wordlist_generator", "ddos"}
@@ -175,8 +168,6 @@ def _infer_capabilities(attrs: dict, init_kw: dict, body_src: str, category: str
         or bool(LONG_RUNNING_KEYWORDS.search(title_desc))
     )
 
-    destructive = category in DESTRUCTIVE_CATEGORIES
-
     runnable = init_kw.get("runnable", True) is not False
     installable = init_kw.get("installable", True) is not False
 
@@ -196,7 +187,6 @@ def _infer_capabilities(attrs: dict, init_kw: dict, body_src: str, category: str
         "requires_wifi": requires_wifi,
         "requires_hardware": requires_hardware,
         "long_running": long_running,
-        "destructive": destructive,
         "installable": installable,
         "runnable": runnable,
         "runnable_by_claude": runnable_by_claude,
@@ -320,8 +310,7 @@ def main():
 
     # Quick capability summary
     buckets = {"runnable_by_claude": 0, "interactive": 0, "requires_sudo": 0,
-               "requires_gui": 0, "requires_hardware": 0, "destructive": 0,
-               "long_running": 0}
+               "requires_gui": 0, "requires_hardware": 0, "long_running": 0}
     for t in all_tools:
         for k in buckets:
             if t["capabilities"].get(k):

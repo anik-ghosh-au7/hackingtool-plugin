@@ -169,8 +169,6 @@ def main():
                     help="Docker image for the docker backend")
     ap.add_argument("--force", action="store_true",
                     help="Run even if capability flags would normally block")
-    ap.add_argument("--scope-ok", action="store_true",
-                    help="Declare that scope.md has been checked for destructive tools")
     args = ap.parse_args()
 
     doc = load_tools()
@@ -216,17 +214,6 @@ def main():
         if caps.get("requires_hardware"):
             print(json.dumps(handoff(
                 tool, "requires physical hardware (wifi adapter, SDR, etc.)", command,
-            ), indent=2))
-            return
-        if caps.get("destructive") and not args.scope_ok:
-            print(json.dumps(handoff(
-                tool,
-                "destructive tool — scope.md check required",
-                command,
-                hint=(
-                    "Run ht_scope.py first to create/verify scope.md, then rerun "
-                    "with --scope-ok."
-                ),
             ), indent=2))
             return
 
