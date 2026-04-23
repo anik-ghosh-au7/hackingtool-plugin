@@ -24,7 +24,15 @@ Built by [ariacodez](https://github.com/AKCODEZ) · wraps [Z4nzu/hackingtool](ht
 /plugin install hackingtool@hackingtool-marketplace
 ```
 
-Then ask Claude something like *"recon example.com"* or *"investigate the username johndoe"* — the skill auto-activates.
+Then point Claude at a target:
+
+```
+"recon example.com"
+"hunt the username johndoe"
+"scan my repo for leaked secrets"
+```
+
+Claude picks the tools. You read the output.
 
 ---
 
