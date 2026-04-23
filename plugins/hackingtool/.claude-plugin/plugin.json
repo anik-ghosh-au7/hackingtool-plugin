@@ -1,0 +1,10 @@
+{
+  "name": "hackingtool",
+  "version": "0.1.0",
+  "description": "Wraps Z4nzu/hackingtool's 185+ pentesting tools as a Claude Code skill. Claude auto-runs what it can (non-interactive, no-sudo, fast); hands off the rest with copy-paste-ready commands. OS-versatile (native Linux/macOS, WSL or Docker on Windows).",
+  "author": {
+    "name": "ARIACODEZ"
+  },
+  "homepage": "https://github.com/Z4nzu/hackingtool",
+  "keywords": ["security", "pentest", "osint", "recon", "nmap", "sherlock", "hackingtool"]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "hackingtool-marketplace",
+  "owner": {
+    "name": "ARIACODEZ"
+  },
+  "metadata": {
+    "description": "Claude Code plugins for security testing and OSINT workflows.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "hackingtool",
+      "source": "./plugins/hackingtool",
+      "description": "Gives Claude access to 185+ pentesting and OSINT tools from Z4nzu/hackingtool. Claude runs what it can non-interactively on any OS; hands off interactive, GUI, sudo, or hardware-dependent tools to the user with exact commands.",
+      "category": "security",
+      "tags": ["security", "pentest", "osint", "recon", "hackingtool"]
+    }
+  ]
+}
