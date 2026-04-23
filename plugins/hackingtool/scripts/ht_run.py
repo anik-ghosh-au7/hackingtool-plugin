@@ -4,7 +4,7 @@ ht_run.py — Try-first runner for hackingtool tools.
 
 Philosophy: Claude Code runs locally on the user's machine. It has real Bash,
 real filesystem, and can launch real processes. So we attempt the tool
-immediately — no preemptive handoffs based on capability flags. Handoff only
+immediately — no preemptive fallbacks based on capability flags. Fallback only
 after the actual run fails, and only for errors a one-shot retry can't fix.
 
 The only true pre-block is `interactive` — tools that read from stdin mid-run
@@ -84,17 +84,17 @@ def find_tool(doc: dict, tool_id: str) -> dict | None:
     return None
 
 
-# ── Handoff formatting ────────────────────────────────────────────────────────
+# ── Fallback formatting ────────────────────────────────────────────────────────
 
-def handoff(tool: dict, reason: str, command: str, hint: str = "", diagnostic: dict | None = None) -> dict:
+def fallback(tool: dict, reason: str, command: str, hint: str = "", diagnostic: dict | None = None) -> dict:
     msg = (
-        f"Couldn't run from here ({reason}). Run it yourself, paste the output back:\n\n"
+        f"Runtime fell back ({reason}). Manual run needed:\n\n"
         f"  {command}\n"
     )
     if hint:
         msg += f"\n{hint}\n"
     result = {
-        "status": "handoff",
+        "status": "fallback",
         "reason": reason,
         "tool": tool["id"],
         "title": tool["title"],
@@ -277,7 +277,7 @@ def execute(tool: dict, command: str, backend: str, timeout: int,
                           network_host=docker_network_host,
                           privileged=docker_privileged,
                           use_entrypoint=use_ep)
-    if backend == "handoff":
+    if backend == "fallback":
         return {"status": "no_backend"}
     return {"status": "error", "message": f"unknown backend: {backend}"}
 
@@ -334,7 +334,7 @@ def main():
     else:
         cmds = tool["install_commands"] if args.install else tool["run_commands"]
         if not cmds:
-            print(json.dumps(handoff(
+            print(json.dumps(fallback(
                 tool, "no_command", "",
                 hint=(
                     f"The index has no {'install' if args.install else 'run'}_commands. "
@@ -352,7 +352,7 @@ def main():
     # The ONLY pre-block: interactive tools that read stdin mid-run.
     # --force bypasses this.
     if caps.get("interactive") and not args.force and args.command is None:
-        print(json.dumps(handoff(
+        print(json.dumps(fallback(
             tool, "interactive",
             command,
             hint="Tool reads stdin mid-run; pipe can't answer prompts. Run it yourself, "
@@ -364,8 +364,8 @@ def main():
     backend = args.backend if args.backend != "auto" else env["preferred_backend"]
     distro = args.distro or (env["wsl_distros"][0] if env["wsl_distros"] else None)
 
-    if backend == "handoff":
-        print(json.dumps(handoff(
+    if backend == "fallback":
+        print(json.dumps(fallback(
             tool, "no_backend", command,
             hint=(
                 "No Linux runtime available. Options: (a) `wsl --install -d Ubuntu`, "
@@ -398,7 +398,7 @@ def main():
                 return
             # Sudo also failed — likely needs interactive password
             if retry.get("returncode") == 1 and "password" in (retry.get("stderr", "").lower()):
-                print(json.dumps(handoff(
+                print(json.dumps(fallback(
                     tool, "sudo_password_needed", f"sudo {command}",
                     hint="`sudo -n` failed (needs password). Run manually or configure passwordless sudo.",
                     diagnostic={"first_try": result, "sudo_try": retry},
@@ -406,13 +406,13 @@ def main():
                 return
             result = retry  # fall through with sudo'd result
 
-    # On failure, classify and maybe handoff with context
+    # On failure, classify and maybe fallback with context
     if result.get("status") != "ok":
         err_class = classify_error(result.get("stdout", ""), result.get("stderr", ""),
                                    result.get("returncode", 1))
         if err_class == "no_device":
-            # True hardware limitation — handoff with hint about what's needed
-            print(json.dumps(handoff(
+            # True hardware limitation — fallback with hint about what's needed
+            print(json.dumps(fallback(
                 tool, "no_device",
                 command,
                 hint="Tool needs hardware (wifi adapter in monitor mode, SDR, etc.) that isn't visible to the backend.",
@@ -420,7 +420,7 @@ def main():
             ), indent=2))
             return
         if err_class == "not_installed":
-            print(json.dumps(handoff(
+            print(json.dumps(fallback(
                 tool, "not_installed",
                 command,
                 hint=(
@@ -431,14 +431,14 @@ def main():
             ), indent=2))
             return
         if err_class == "stdin_needed":
-            print(json.dumps(handoff(
+            print(json.dumps(fallback(
                 tool, "interactive_detected",
                 command,
                 hint="Tool blocked on stdin during the run. Index didn't flag it interactive — update the capability.",
                 diagnostic=result,
             ), indent=2))
             return
-        # Unclassified error — surface it but don't handoff; let caller decide
+        # Unclassified error — surface it but don't fallback; let caller decide
         result["tool"] = tool["id"]
         result["title"] = tool["title"]
         print(json.dumps(result, indent=2, ensure_ascii=False))

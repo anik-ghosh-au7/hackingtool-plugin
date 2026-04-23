@@ -7,7 +7,7 @@ Prints JSON describing:
   - whether this Python is running inside WSL
   - on Windows: available WSL distros
   - whether Docker is available and responsive
-  - preferred_backend: native | wsl | docker | handoff
+  - preferred_backend: native | wsl | docker | fallback
 
 Downstream (ht_run.py) uses preferred_backend to pick a runner.
 """
@@ -101,9 +101,9 @@ def describe() -> dict:
         elif docker:
             backend = "docker"
         else:
-            backend = "handoff"
+            backend = "fallback"
     else:
-        backend = "handoff"
+        backend = "fallback"
 
     return {
         "host": host,

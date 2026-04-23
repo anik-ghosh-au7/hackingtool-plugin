@@ -11,7 +11,7 @@
     {
       "name": "hackingtool",
       "source": "./plugins/hackingtool",
-      "description": "Gives Claude access to 185+ pentesting and OSINT tools from Z4nzu/hackingtool. Claude runs what it can non-interactively on any OS; hands off interactive, GUI, sudo, or hardware-dependent tools to the user with exact commands.",
+      "description": "183+ pentesting and OSINT tools (nmap, nuclei, amass, subfinder, httpx, sherlock, maigret, trufflehog, sqlmap, impacket, and more) wired into Claude Code. Runs locally on any OS via native Bash, WSL, or purpose-built Docker images — Claude picks the right backend and image automatically.",
       "category": "security",
       "tags": ["security", "pentest", "osint", "recon", "hackingtool"]
     }

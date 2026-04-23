@@ -1,7 +1,7 @@
 {
   "name": "hackingtool",
-  "version": "0.1.0",
-  "description": "Wraps Z4nzu/hackingtool's 185+ pentesting tools as a Claude Code skill. Claude auto-runs what it can (non-interactive, no-sudo, fast); hands off the rest with copy-paste-ready commands. OS-versatile (native Linux/macOS, WSL or Docker on Windows).",
+  "version": "0.2.0",
+  "description": "183+ pentesting and OSINT tools (nmap, nuclei, amass, subfinder, httpx, sherlock, maigret, trufflehog, sqlmap, impacket, and more) wired into Claude Code as a single skill. Runs locally on any OS via native Bash, WSL, or purpose-built Docker images (instrumentisto/nmap, projectdiscovery/nuclei, caffix/amass, etc.). Just ask Claude to recon a target, scan a network, investigate a username, or chain OSINT workflows — the skill picks the right backend and image automatically.",
   "author": {
     "name": "ARIACODEZ"
   },

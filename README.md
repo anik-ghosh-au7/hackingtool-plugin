@@ -4,7 +4,7 @@
 
 # hackingtool — Claude Code plugin
 
-**183 pentesting & OSINT tools at Claude's fingertips.** Plugin-skill wrapper around [Z4nzu/hackingtool](https://github.com/Z4nzu/hackingtool). Claude Code runs locally — tries every tool first via native Bash, WSL, or Docker with purpose-built images. Only hands off on actual failure (hardware missing, stdin prompts, unavailable backend).
+**183 pentesting & OSINT tools at Claude's fingertips.** Plugin-skill wrapper around [Z4nzu/hackingtool](https://github.com/Z4nzu/hackingtool). Runs locally on any OS — native Bash on Linux/macOS, WSL on Windows, or purpose-built Docker images (`instrumentisto/nmap`, `projectdiscovery/nuclei`, `caffix/amass`, and 20+ more). The skill picks the right backend and image automatically.
 
 ![Plugin](https://img.shields.io/badge/Claude_Code-Plugin-7B61FF?style=for-the-badge)
 ![Tools](https://img.shields.io/badge/183_Tools-00FF88?style=for-the-badge)
@@ -28,56 +28,31 @@ Then ask Claude something like *"recon example.com"* or *"investigate the userna
 
 ---
 
-## Screenshots
+## How it works
 
-<div align="center">
+Every tool invocation goes through `ht_run.py`, which:
 
-<img src="images/A.png" alt="HackingTool main menu" width="720">
-<br><sub>Main menu — 20 categories, ~185 tools</sub>
+1. Picks a backend: **native** (Linux/macOS), **WSL** (Windows + real distro), or **Docker** (anywhere Docker Desktop runs).
+2. Maps known tools to **purpose-built Docker images** — fast pulls, clean ENTRYPOINTs, no `apt install` dance:
 
-<br><br>
+   | Category | Images |
+   |---|---|
+   | Port scanning | `instrumentisto/nmap`, `ilyaglow/masscan`, `rustscan/rustscan` |
+   | Subdomain recon | `projectdiscovery/subfinder`, `caffix/amass`, `projectdiscovery/httpx` |
+   | Vuln scanning | `projectdiscovery/nuclei`, `projectdiscovery/katana` |
+   | OSINT | `megadose/holehe`, `soxoj/maigret`, `spiderfoot/spiderfoot`, `secsi/theharvester` |
+   | Secrets | `trufflesecurity/trufflehog`, `zricethezav/gitleaks` |
+   | Web attack | `secsi/ffuf`, `devopsworks/gobuster`, `drwetter/testssl.sh`, `0xsauby/wafw00f` |
+   | SQL injection | `paoloo/sqlmap` |
+   | Active Directory | `rflathers/impacket`, `byt3bl33d3r/netexec` |
+   | Phishing recon | `elceef/dnstwist` |
+   | Fallback | `kalilinux/kali-rolling` (for anything not in the override map) |
 
-<img src="images/AA.png" alt="Category listing" width="720">
-<br><sub>Category view with install status per tool</sub>
+3. Runs the command, auto-retries with elevated privileges on permission errors (native/WSL), and surfaces the actual tool output as structured JSON.
 
-<br><br>
+The 🟢/🟡 icons in the inventory below are quick indicators of how the tool usually behaves — 🟢 for "plug-and-play" invocations, 🟡 for tools whose behavior depends on the backend and environment (adapter hardware, sudo config, etc.). Either way, the skill runs it and tells you what happened.
 
-<img src="images/AAA.png" alt="Tool run view" width="720">
-<br><sub>Tool detail — install / run / update / open folder</sub>
-
-<br><br>
-
-<img src="images/AAAA.png" alt="Search and filter" width="720">
-<br><sub>Search, tag filter, and recommend</sub>
-
-<br><br>
-
-<img src="images/AAAAA.png" alt="Help overlay" width="720">
-<br><sub>Inline help + quick commands</sub>
-
-</div>
-
-Screenshots from the upstream [Z4nzu/hackingtool](https://github.com/Z4nzu/hackingtool) repo — the plugin gives Claude the same coverage without the menu.
-
----
-
-## How it works (try-first)
-
-Claude Code runs on your machine. So does this plugin. Every tool invocation goes through `ht_run.py`, which:
-
-1. Picks a backend: **native** (Linux/macOS), **WSL** (Windows + real distro), or **Docker** (anywhere with Docker Desktop).
-2. Maps known tools to **purpose-built Docker images** (`instrumentisto/nmap`, `projectdiscovery/nuclei`, `caffix/amass`, etc.) for fast pulls and clean ENTRYPOINTs. Falls back to `kalilinux/kali-rolling` for anything not mapped.
-3. **Tries the command first.** Permission denied? Retries with `sudo -n`. Binary missing? Suggests `--install`. Hardware not visible? *That's* when it hands off, with the actual error message.
-4. Only one pre-block: tools flagged `interactive` (they read stdin mid-run and can't be answered through Bash pipes). Bypass with `--force` + `--command` if you have non-interactive args.
-
-Capability flags in the index are hints — not veto votes. The old 🟢/🟡 split is a rough proxy for "how likely is this to run cleanly on the first attempt":
-
-| Icon | Meaning |
-|---|---|
-| 🟢 | High confidence — no sudo, no hardware, no GUI, no stdin prompts. Usually just works. |
-| 🟡 | May need `sudo -n` retry, GUI launch on desktop, or handoff on real failure (missing hardware, install needed). The plugin will try first and tell you what actually happened. |
-
-Current breakdown: **56 high-confidence runs · 127 may-need-fallback**.
+Current breakdown: **56 🟢 · 127 🟡 · 183 total**.
 
 ---
 
@@ -89,18 +64,18 @@ The plugin picks a backend automatically via `ht_env.py`:
 |---|---|
 | Linux / macOS native | `bash -lc <cmd>` |
 | Windows + real WSL distro (Ubuntu, Kali, etc.) | `wsl -d <distro> -- bash -lc <cmd>` |
-| Windows + Docker Desktop (no WSL) | `docker run --rm kalilinux/kali-rolling bash -lc <cmd>` |
-| Windows without either | Handoff with install hints |
+| Windows + Docker Desktop | `docker run --rm <image> <args>` |
+| Anywhere Docker is running | Docker backend (preferred when available) |
 
-Tools still need to be installed in the chosen backend. `ht_run.py <tool_id> --install` runs the install commands (which may itself be a handoff if install needs sudo).
+Docker images in the override map are pulled on first use and cached. `ht_run.py <tool_id> --install` runs the install commands for native/WSL when you need the binary on the host itself.
 
 ---
 
 ## Master tool inventory
 
-Legend: 🟢 Claude runs it directly · 🟡 handoff (sudo / GUI / interactive / hardware)
+Legend: 🟢 plug-and-play · 🟡 depends on backend / environment
 
-**183 tools total** — 🟢 56 Claude-runnable · 🟡 127 handoff
+**183 tools total** — 🟢 56 plug-and-play · 🟡 127 environment-dependent
 
 
 ### 🛡 Anonymously Hiding (2)
@@ -467,12 +442,12 @@ hackingtool-plugin/
     │   ├── build_readme_table.py # (dev) regenerate the table above
     │   ├── ht_search.py          # query index
     │   ├── ht_env.py             # detect backend
-    │   └── ht_run.py             # run or hand off
+    │   └── ht_run.py             # backend-aware tool runner
     └── skills/pentest/
         ├── SKILL.md
         └── reference/
             ├── workflows.md
-            └── handoff-patterns.md
+            └── runtime-fallbacks.md
 ```
 
 ---

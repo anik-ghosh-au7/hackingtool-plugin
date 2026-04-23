@@ -5,8 +5,8 @@ build_readme_table.py — Emit a markdown tool inventory from tools.json.
 Generates a per-category table with:
   - Tool title (linked to project_url if present)
   - One-line description
-  - Capability icon: green = Claude can run, yellow = handoff
-  - Handoff reason tags (sudo / gui / interactive / hardware)
+  - Capability icon: green = plug-and-play, yellow = environment-dependent
+  - Flag tags (sudo / gui / interactive / hardware)
 
 Usage:
   python build_readme_table.py               # emits to stdout
@@ -108,8 +108,8 @@ def main():
     # Summary line
     total = len(tools)
     runnable = sum(1 for t in tools if t["capabilities"].get("runnable_by_claude"))
-    print(f"**{total} tools total** — 🟢 {runnable} Claude-runnable · "
-          f"🟡 {total - runnable} handoff\n")
+    print(f"**{total} tools total** — 🟢 {runnable} plug-and-play · "
+          f"🟡 {total - runnable} environment-dependent\n")
 
     for cat_key, label in ordered:
         cat_tools = sorted(by_cat[cat_key], key=lambda t: t["title"].lower())
