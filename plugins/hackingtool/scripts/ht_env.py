@@ -8,8 +8,10 @@ Prints JSON describing:
   - on Windows: available WSL distros
   - whether Docker is available and responsive
   - preferred_backend: native | wsl | docker | fallback
+  - backend_order: the ordered fallback chain to try
 
-Downstream (ht_run.py) uses preferred_backend to pick a runner.
+Downstream (ht_run.py) uses preferred_backend first, then can fall back to the
+rest of backend_order when auto mode is enabled.
 """
 
 import json
@@ -93,17 +95,19 @@ def describe() -> dict:
     wsl_distros = _wsl_distros()
     docker = _docker_ready()
 
+    backend_order: list[str] = []
     if host in ("linux", "macos"):
-        backend = "native"
+        backend_order.append("native")
+        if docker:
+            backend_order.append("docker")
     elif host == "windows":
         if wsl_distros:
-            backend = "wsl"
-        elif docker:
-            backend = "docker"
-        else:
-            backend = "fallback"
-    else:
-        backend = "fallback"
+            backend_order.append("wsl")
+        if docker:
+            backend_order.append("docker")
+
+    if not backend_order:
+        backend_order = ["fallback"]
 
     return {
         "host": host,
@@ -111,7 +115,8 @@ def describe() -> dict:
         "in_wsl": in_wsl,
         "wsl_distros": wsl_distros,
         "docker": docker,
-        "preferred_backend": backend,
+        "preferred_backend": backend_order[0],
+        "backend_order": backend_order,
     }
 
 

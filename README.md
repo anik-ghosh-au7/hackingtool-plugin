@@ -47,7 +47,7 @@ Claude picks the tools. You read the output.
 
 Every tool invocation goes through `ht_run.py`, which:
 
-1. Picks a backend: **native** (Linux/macOS), **WSL** (Windows + real distro), or **Docker** (anywhere Docker Desktop runs).
+1. Picks a backend chain: **native** (Linux/macOS), **WSL** (Windows + real distro), or **Docker** (anywhere Docker Desktop runs), and in auto mode can fall through to Docker when the local backend is missing the binary.
 2. Maps known tools to **purpose-built Docker images** — fast pulls, clean ENTRYPOINTs, no `apt install` dance:
 
    | Category | Images |
@@ -80,9 +80,9 @@ The plugin picks a backend automatically via `ht_env.py`:
 | Linux / macOS native | `bash -lc <cmd>` |
 | Windows + real WSL distro (Ubuntu, Kali, etc.) | `wsl -d <distro> -- bash -lc <cmd>` |
 | Windows + Docker Desktop | `docker run --rm <image> <args>` |
-| Anywhere Docker is running | Docker backend (preferred when available) |
+| Linux / macOS with Docker available | native first, then Docker fallback when needed |
 
-Docker images in the override map are pulled on first use and cached. `ht_run.py <tool_id> --install` runs the install commands for native/WSL when you need the binary on the host itself.
+Docker images in the override map are pulled on first use and cached. `ht_run.py <tool_id> --install` runs the install commands for native/WSL when you need the binary on the host itself. On OpenClaw installs, the bundle is typically located at `~/.openclaw/extensions/hackingtool/`.
 
 ---
 

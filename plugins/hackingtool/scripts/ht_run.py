@@ -282,6 +282,14 @@ def execute(tool: dict, command: str, backend: str, timeout: int,
     return {"status": "error", "message": f"unknown backend: {backend}"}
 
 
+def should_try_docker_fallback(env: dict, selected_backend: str, err_class: str | None) -> bool:
+    if selected_backend == "docker":
+        return False
+    if not env.get("docker"):
+        return False
+    return err_class in {"not_installed", "no_device"}
+
+
 def retry_with_sudo(tool: dict, command: str, backend: str, timeout: int,
                     distro: str | None) -> dict:
     """Only applicable to native/wsl backends. Docker already runs as root."""
@@ -375,12 +383,18 @@ def main():
         return
 
     # Apply user's docker image override
-    if args.docker_image and backend == "docker":
+    if args.docker_image:
         DOCKER_IMAGE_OVERRIDES[tool["id"]] = args.docker_image
 
+    attempted_backends: list[str] = []
+
+    def attempt(selected_backend: str) -> dict:
+        attempted_backends.append(selected_backend)
+        return execute(tool, command, selected_backend, args.timeout, distro,
+                       args.network_host, args.privileged)
+
     # First attempt
-    result = execute(tool, command, backend, args.timeout, distro,
-                     args.network_host, args.privileged)
+    result = attempt(backend)
 
     # Try sudo retry on permission errors (native/wsl only — docker is already root)
     if (result.get("status") == "error"
@@ -394,6 +408,7 @@ def main():
                 retry["retried_with_sudo"] = True
                 retry["tool"] = tool["id"]
                 retry["title"] = tool["title"]
+                retry["attempted_backends"] = attempted_backends
                 print(json.dumps(retry, indent=2, ensure_ascii=False))
                 return
             # Sudo also failed — likely needs interactive password
@@ -406,6 +421,22 @@ def main():
                 return
             result = retry  # fall through with sudo'd result
 
+    # Auto fallback to docker when local backend lacks the binary or hardware.
+    if args.backend == "auto" and result.get("status") != "ok":
+        err_class = classify_error(result.get("stdout", ""), result.get("stderr", ""),
+                                   result.get("returncode", 1))
+        if should_try_docker_fallback(env, backend, err_class) and "docker" not in attempted_backends:
+            docker_retry = attempt("docker")
+            docker_retry["fallback_from_backend"] = backend
+            docker_retry["fallback_reason"] = err_class
+            if docker_retry.get("status") == "ok":
+                docker_retry["tool"] = tool["id"]
+                docker_retry["title"] = tool["title"]
+                docker_retry["attempted_backends"] = attempted_backends
+                print(json.dumps(docker_retry, indent=2, ensure_ascii=False))
+                return
+            result = docker_retry
+
     # On failure, classify and maybe fallback with context
     if result.get("status") != "ok":
         err_class = classify_error(result.get("stdout", ""), result.get("stderr", ""),
@@ -415,8 +446,8 @@ def main():
             print(json.dumps(fallback(
                 tool, "no_device",
                 command,
-                hint="Tool needs hardware (wifi adapter in monitor mode, SDR, etc.) that isn't visible to the backend.",
-                diagnostic=result,
+                hint="Tool needs hardware (wifi adapter in monitor mode, SDR, etc.) that isn't visible to the available backends.",
+                diagnostic={**result, "attempted_backends": attempted_backends},
             ), indent=2))
             return
         if err_class == "not_installed":
@@ -424,10 +455,10 @@ def main():
                 tool, "not_installed",
                 command,
                 hint=(
-                    f"Tool binary not found. Try: `python ht_run.py {tool['id']} --install`. "
-                    f"On docker backend, consider --docker-image <image> with the tool pre-installed."
+                    f"Tool binary not found on the available backends. Try: `python ht_run.py {tool['id']} --install`. "
+                    f"You can also override the runtime with --backend docker or --docker-image <image>."
                 ),
-                diagnostic=result,
+                diagnostic={**result, "attempted_backends": attempted_backends},
             ), indent=2))
             return
         if err_class == "stdin_needed":
@@ -435,18 +466,20 @@ def main():
                 tool, "interactive_detected",
                 command,
                 hint="Tool blocked on stdin during the run. Index didn't flag it interactive — update the capability.",
-                diagnostic=result,
+                diagnostic={**result, "attempted_backends": attempted_backends},
             ), indent=2))
             return
         # Unclassified error — surface it but don't fallback; let caller decide
         result["tool"] = tool["id"]
         result["title"] = tool["title"]
+        result["attempted_backends"] = attempted_backends
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return
 
     # Success
     result["tool"] = tool["id"]
     result["title"] = tool["title"]
+    result["attempted_backends"] = attempted_backends
     print(json.dumps(result, indent=2, ensure_ascii=False))
 
 

@@ -69,6 +69,7 @@ def _recommendations(env: dict, disk_gb: float, net_ok: bool,
                      native_tools: list[str]) -> list[dict]:
     recs: list[dict] = []
     backend = env["preferred_backend"]
+    backend_order = env.get("backend_order", [backend])
     host = env["host"]
     docker = env["docker"]
 
@@ -126,21 +127,23 @@ def _verdict(env: dict, recs: list[dict]) -> str:
 def _summary(env: dict, verdict: str, recs: list[dict],
              native_tools: list[str]) -> str:
     backend = env["preferred_backend"]
+    backend_order = env.get("backend_order", [backend])
     docker = env["docker"]
+    chain = " → ".join(backend_order)
 
     if verdict == "ready":
         if backend in ("native", "wsl") and native_tools:
-            head = (f"Ready — backend={backend}, "
+            head = (f"Ready — backend chain={chain}, "
                     f"{len(native_tools)}/{len(_CORE_BINARIES)} core tools on PATH"
                     f"{' (Docker fallback available)' if docker else ''}.")
         elif backend == "docker":
-            head = f"Ready — backend={backend} (tools run in containers)."
+            head = f"Ready — backend chain={chain} (tools run in containers)."
         else:
-            head = f"Ready — backend={backend}."
+            head = f"Ready — backend chain={chain}."
     elif verdict == "partial":
-        head = f"Partial — backend={backend}. Some workflows limited."
+        head = f"Partial — backend chain={chain}. Some workflows limited."
     else:
-        head = f"Blocked — backend={backend}. Real tools cannot run here."
+        head = f"Blocked — backend chain={chain}. Real tools cannot run here."
 
     if not recs:
         return head
