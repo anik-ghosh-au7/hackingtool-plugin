@@ -1,0 +1,10 @@
+{
+  "name": "hackingtool",
+  "version": "0.2.0",
+  "description": "OpenClaw-first pentest and OSINT bundle wrapping 183 tools from Z4nzu/hackingtool. Provides one pentest skill plus a small runtime wrapper for backend selection, Docker fallback, tool lookup, and structured execution output.",
+  "author": {
+    "name": "Anik Ghosh"
+  },
+  "homepage": "https://github.com/anik-ghosh-au7/hackingtool-plugin",
+  "keywords": ["openclaw", "security", "pentest", "osint", "recon", "hackingtool"]
+}
