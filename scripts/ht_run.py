@@ -218,6 +218,18 @@ def run_wsl(command: str, timeout: int, distro: str | None, use_sudo: bool = Fal
                 {"command": full, "distro": distro, "sudo": use_sudo})
 
 
+def _docker_cmd() -> str:
+    """Return the correct docker binary for this environment."""
+    # Prefer native docker when available
+    if shutil.which("docker"):
+        return "docker"
+    # Fallback to Docker Desktop from WSL
+    docker_exe = "/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe"
+    if os.path.exists(docker_exe):
+        return docker_exe
+    return "docker"
+
+
 def run_docker(command: str, timeout: int, image: str,
                network_host: bool = False, privileged: bool = False,
                use_entrypoint: bool = True) -> dict:
@@ -231,7 +243,8 @@ def run_docker(command: str, timeout: int, image: str,
     if len(cwd) > 1 and cwd[1] == ":":
         cwd = "/" + cwd[0].lower() + cwd[2:]
 
-    argv = ["docker", "run", "--rm"]
+    docker_bin = _docker_cmd()
+    argv = [docker_bin, "run", "--rm"]
     if network_host:
         argv += ["--network", "host"]
     if privileged:

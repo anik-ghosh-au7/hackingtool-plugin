@@ -77,16 +77,33 @@ def _wsl_distros() -> list[str]:
 
 
 def _docker_ready() -> bool:
-    if not _has("docker"):
-        return False
-    try:
-        r = subprocess.run(
-            ["docker", "info"],
-            capture_output=True, timeout=5,
-        )
-        return r.returncode == 0
-    except (subprocess.TimeoutExpired, OSError):
-        return False
+    # Check for native Docker (Linux/macOS/WSL with Docker Engine)
+    if _has("docker"):
+        try:
+            r = subprocess.run(
+                ["docker", "info"],
+                capture_output=True, timeout=5,
+            )
+            if r.returncode == 0:
+                return True
+        except (subprocess.TimeoutExpired, OSError):
+            pass
+
+    # Check for Docker Desktop from WSL (Windows host)
+    if _is_wsl():
+        docker_exe = "/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe"
+        if os.path.exists(docker_exe):
+            try:
+                r = subprocess.run(
+                    [docker_exe, "info"],
+                    capture_output=True, timeout=5,
+                )
+                if r.returncode == 0:
+                    return True
+            except (subprocess.TimeoutExpired, OSError):
+                pass
+
+    return False
 
 
 def describe() -> dict:
