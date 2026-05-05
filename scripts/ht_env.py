@@ -77,12 +77,13 @@ def _wsl_distros() -> list[str]:
 
 
 def _docker_ready() -> bool:
+    timeout = float(os.environ.get("HT_DOCKER_INFO_TIMEOUT", "15"))
     # Check for native Docker (Linux/macOS/WSL with Docker Engine)
     if _has("docker"):
         try:
             r = subprocess.run(
                 ["docker", "info"],
-                capture_output=True, timeout=5,
+                capture_output=True, timeout=timeout,
             )
             if r.returncode == 0:
                 return True
@@ -96,7 +97,7 @@ def _docker_ready() -> bool:
             try:
                 r = subprocess.run(
                     [docker_exe, "info"],
-                    capture_output=True, timeout=5,
+                    capture_output=True, timeout=timeout,
                 )
                 if r.returncode == 0:
                     return True
